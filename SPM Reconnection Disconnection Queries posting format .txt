@@ -1,0 +1,19 @@
+SPM
+---------
+TODAY_CONNECTED_COUNT -- 	170
+TODAY_DISCONNECTED_COUNT -- 	0
+PENDING_CONNECT_COUNT -- 	182
+PENDING_DISCONNECT_COUNT -- 	2501
+
+HES
+---------
+TODAY_CONNECTED_COUNT --     170
+TODAY_DISCONNECTED_COUNT --     0
+
+Mpower
+------------
+Disconnection requests: 4
+Successfully disconnected: 0
+
+Re connection requests: 14
+Successfully reconnected: 10

@@ -1,0 +1,19 @@
+
+--INST--
+WITH office_meters AS (SELECT id FROM cdb.office_master_hierarchy WHERE parentid = '2f00f158-3c5e-458b-87f8-0ae73224f5cf'),
+today_inst AS (SELECT DISTINCT meter_number FROM fep.fep_csv_instant WHERE meter_time >= CURRENT_DATE AND meter_time < CURRENT_DATE + 1 AND status = 'Success' AND LEFT(meter_number, 2) IN ('UK','UG','UH','US')),
+meter_status AS (SELECT DISTINCT mm.mtr_number, CASE LEFT(mm.mtr_number, 2) WHEN 'UK' THEN 'KIMBAL' WHEN 'UG' THEN 'GENUS' WHEN 'UH' THEN 'HPL' WHEN 'US' THEN 'SEIPL' END AS oem, CASE WHEN inst.meter_number IS NOT NULL THEN 1 ELSE 0 END AS has_inst,
+CASE WHEN COALESCE(cc.lp_cnt,0) + COALESCE(cc.inst_cnt,0) + COALESCE(cc.energy_cnt,0) + COALESCE(cc.eob_ed_cnt,0) + COALESCE(cc.event_cnt,0) > 0 THEN 1 ELSE 0 END AS has_communication,
+CASE WHEN GREATEST(c.lp_max_time, c.ed_max_time, c.eob_max_time, c.instd_max_time, c.volt_max_time, c.curr_max_time, c.pwr_max_time, c.trans_max_time, c.oe_max_time, c.nr_max_time, c.ce_max_time) IS NULL THEN 1 ELSE 0 END AS never_communicated,
+mm.relay_status FROM cdb.meter_master mm INNER JOIN cdb.meter_feild_device_relation rel ON rel.meter_id = mm.id AND rel.record_status = 1 INNER JOIN cdb.field_device_m fld ON fld.id = rel.field_device_id AND fld.record_status = 1
+INNER JOIN cdb.meter_type_m mtm ON mtm.id = mm.mtr_type AND mtm.record_status = 1 INNER JOIN cdb.meter_make_m mmm ON mmm.id = mm.mtr_make AND mmm.record_status = 1 INNER JOIN cdb.meter_manufacturer mm2 ON mm2.id = mmm.mtr_manfacture_id AND mm2.record_status = 1
+INNER JOIN dwh.max_mtr_view c ON c.meter_number = mm.mtr_number LEFT JOIN dwh.communication_count cc ON cc.meter_number = mm.mtr_number AND cc.lp_date = TO_CHAR(CURRENT_DATE,'YYYYMMDD')::INT LEFT JOIN today_inst inst ON inst.meter_number = mm.mtr_number
+WHERE mm.record_status = 1 AND mm.mtr_installed_date IS NOT NULL AND mm.relay_status IS NOT NULL AND rel.field_office_id IN (SELECT id FROM office_meters) AND mm2.name IN ('GENUS','HPL','SEIPL','KIMBAL') AND LEFT(mm.mtr_number,2) IN ('UK','UG','UH','US')),
+report AS (SELECT oem, COUNT(*) FILTER (WHERE has_inst = 1) AS inst_received, COUNT(*) FILTER (WHERE has_inst = 0 AND has_communication = 0 AND never_communicated = 0) AS non_com,
+COUNT(*) FILTER (WHERE has_inst = 0 AND has_communication = 1) AS yet_to_receive,COUNT(*) FILTER (WHERE never_communicated = 1) AS never_com,COUNT(*) AS total, COUNT(*) FILTER (WHERE relay_status = 1) AS connected,COUNT(*) FILTER (WHERE relay_status = 0) AS disconnected FROM meter_status GROUP BY oem),
+final_report AS (SELECT oem, inst_received, non_com, yet_to_receive, never_com, total, ROUND(100.0 * inst_received / NULLIF(inst_received + yet_to_receive, 0), 1) AS inst_percent, connected, disconnected,
+CASE oem WHEN 'GENUS' THEN 1 WHEN 'HPL' THEN 2 WHEN 'KIMBAL' THEN 3 WHEN 'SEIPL' THEN 4 ELSE 5 END AS sort_order FROM report
+UNION ALL
+SELECT 'Grand Total', SUM(inst_received), SUM(non_com), SUM(yet_to_receive), SUM(never_com), SUM(total), ROUND(100.0 * SUM(inst_received) / NULLIF(SUM(inst_received) + SUM(yet_to_receive), 0), 1), SUM(connected), SUM(disconnected),5 FROM report)
+SELECT oem, inst_received, non_com, yet_to_receive, never_com, total, inst_percent, connected, disconnected FROM final_report ORDER BY sort_order;
+ 

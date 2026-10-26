@@ -1,0 +1,44 @@
+select lp_date,sum(cnt) comm_cnt,sum(count_data) count_data,sum(lp_cnt) ED_cnt from (
+select lp_date,count(*) cnt,null as count_data,null as lp_cnt
+from dwh.communication_count (nolock)
+where lp_date between 20231110 and 20231112
+and (ENERGY_CNT)>0
+group by lp_date
+union all
+select lp_date,null cnt,count(*) as count_data, null as lp_cnt
+from dwh.communication_count_data (nolock)
+where lp_date between 20231110 and 20231112
+and (ENERGY_CNT)>0
+group by lp_date
+union all
+select convert(varchar,METER_time,112) lp_date,null as cnt, null as count_data,count(distinct meter_number) lp_cnt
+from fep.fep_csv_ed (nolock)where METER_time between '2023-11-10 00:00:00' and '2023-11-12 23:59:59' AND status='Success'
+group by convert(varchar,METER_time,112)
+)Z group by lp_date
+
+
+SELECT * FROM FEP.QRTZ_TRIGGERS(NOLOCK) WHERE JOB_NAME like 'Daily LoadProfile'
+
+--Schedule Job Report- KESCo & NDMC
+--*****************************
+SELECT JOB_GROUP_NAME,START_TIME,END_TIME,TOTAL_CNT,SUCCESS,FAILURE,*
+FROM FEP.FEP_JOB_SCHEDULE_LOG WHERE RECORD_STATUS=1
+AND CONVERT(VARCHAR(10),CREATE_DATE,120)='2023-12-12'
+ORDER BY CREATE_DATE DESC
+
+--Main Table query -----
+--=========================================================================================================================================
+Select count(distinct(METER_NUMBER)) from fep.fep_csv_ed (nolock) where record_status=1 and READING_TYPE='S'
+and CREATE_DATE between '2023-11-12 00:00:00:000' and '2023-11-12  23:59:59:999'
+Select top 100 * from fep.fep_csv_ed (nolock) where record_status=1 and READING_TYPE='S'
+and CREATE_DATE between '2023-04-06 00:00:00:000' and '2023-04-06 23:59:59:999'
+
+--Data Availability Report- NDMC & KESCo
+--***************************
+SELECT left(convert(varchar, CAST(CONVERT(VARCHAR,LP_DATE,112) AS DATETIME), 106),2)+'-'+substring(convert(varchar, CAST(CONVERT(VARCHAR,LP_DATE,112) AS DATETIME), 106),4,3) +'-'+
+right(convert(varchar, CAST(CONVERT(VARCHAR,LP_DATE,112) AS DATETIME), 106),4) LPDATE,COUNT(DISTINCT METER_NUMBER) TOT_CNT, (select count(distinct meter_number)
+from DWH.COMMUNICATION_COUNT_DATA(nolock) dlp where dlp.lp_date = dwh.lp_date and dlp.ENERGY_CNT > 0) DLP, (select count(distinct meter_number)
+from DWH.COMMUNICATION_COUNT_DATA(nolock) blp where blp.lp_date = dwh.lp_date and blp.LP_CNT > 0) BLP, (select count(distinct meter_number) from DWH.COMMUNICATION_COUNT_DATA(nolock) eob
+where eob.lp_date between 20231201 and dwh.lp_date and eob.EOB_ED_CNT > 0) EOB FROM DWH.COMMUNICATION_COUNT (NOLOCK) DWH WHERE LP_DATE BETWEEN 20231210 AND 20231212
+GROUP BY LP_DATE ORDER BY LP_DATE
+

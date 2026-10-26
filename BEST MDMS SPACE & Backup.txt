@@ -1,0 +1,23 @@
+
+
+step - 1. Connect to server using putty
+172.36.176.61 
+SSH --> AUTH --> Credentials --> Key browser
+step - 2. Enter User name -------> ubuntu
+
+step - 3. connect to root -------> sudo -i
+
+step - 4. space availability ----> df -h
+span = 95% or 200 GB availability
+
+step - 5. switch to postgres user ------> su - postgres
+for clearing disk space
+psql
+\l
+\c bestmdm_tnd
+truncate table partition_sub.mdms_stg_csv_lp_20250920;
+
+For Backup
+step - 6. Enter the comand to backup (Change to current date at last) ----->
+setsid /usr
+/lib/postgresql/14/bin/pg_dump -d bestmdm_tnd --exclude-schema-h=drl  --exclude-table=partition_sub.lp_20250101 --exclude-table=partition_sub.lp_20250201 --exclude-table=partition_sub.lp_20250301 --exclude-table=partition_sub.lp_20241201  -U postgres | aws s3 cp - s3://postgres-db-backup-bucket/db-backup/fullbkp20250723.sql --expected-size 3000000000000 &

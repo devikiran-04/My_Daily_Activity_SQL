@@ -1,0 +1,38 @@
+
+KETTLE TRAINING SESSION
+
+
+DAY !:-
+
+1. Introduction to ETL TOOL
+
+--> Prsent in our company we are using Petaho data integration (version 5.3) as a ETL tool
+
+--> Requiremets are java consoule and spoon should be installed 
+ 
+--> ETL --> Extract Transform and Loading
+
+--> It is used to transfer the data from one table to another table with some processes.
+--> HES PATH     ----------> file placing 250mb
+--> Share Path   ----------> file movement from hespath 25mb   
+--> Destination (Dest) ----> file placing as per the sharepath files 
+--> Backup ----------------> Saving the files as per the client required peroids
+
+--> These are the common path for all the projects
+
+--> The tables name should be same for both share path and dest.
+
+2. Schedules jobs
+
+--> Daily load (DLP/ED)
+--> Block load (BLP/LP)
+--> End of billing (EOB/Month of billing)
+--> Alarm files
+--> Instantaneous
+and extra..,
+
+--> JSON files shown in HES in HES_data_availability table
+--> CSV files shown in  MDMS in MDMS_data_availability table
+
+DAY 2:-
+
